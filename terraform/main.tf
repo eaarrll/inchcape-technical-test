@@ -44,6 +44,6 @@ resource "azurerm_linux_web_app" "example" {
   }
 
   lifecycle {
-    ignore_changes = false
+    ignore_changes = all
   }
 }
