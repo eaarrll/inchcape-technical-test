@@ -15,7 +15,7 @@ resource "azurerm_service_plan" "example" {
   sku_name            = "F1"
 }
 
-resource "azurerm_app_service" "example" {
+resource "azurerm_linux_web_app" "example" {
   name                = "inchcape-app"
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
