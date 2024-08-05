@@ -30,6 +30,7 @@ resource "azurerm_linux_web_app" "example" {
   site_config {
     app_command_line = "node src/index.js"
     always_on        = false
+    linux_fx_version = "NODE|18-lts"
   }
 
   app_settings = {
