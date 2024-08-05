@@ -47,7 +47,7 @@ jobs:
       run: terraform plan -input=false
 
     - name: Terraform Apply
-      if: github.ref == 'refs/heads/"main"'
+      #if: github.ref == 'refs/heads/"main"'
       working-directory: terraform
       env:
         TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
