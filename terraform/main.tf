@@ -19,10 +19,12 @@ resource "azurerm_linux_web_app" "example" {
   name                = "inchcape-app"
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
-  app_service_plan_id = azurerm_service_plan.example.id
+  service_plan_id     = azurerm_service_plan.example.id
 
   site_config {
     app_command_line = "node src/index.js"
+    always_on = true
+    linux_fx_version = "NODE|14-lts"
   }
 
   app_settings = {
@@ -31,6 +33,10 @@ resource "azurerm_linux_web_app" "example" {
   }
 
   https_only = true
+
+  identity {
+    type = "SystemAssigned"
+  }
 
   lifecycle {
     ignore_changes = [
