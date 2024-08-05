@@ -1,18 +1,30 @@
-const express = require('express');
+const express = require("express");
 const axios = require('axios');
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.get('/posts', async (req, res) => {
+const options = {
+    url: 'https://jsonplaceholder.typicode.com/posts',
+    method: 'GET',
+    headers: {
+        'Accept': 'application/json',
+        'Accept-Charset': 'utf-8',
+        'User-Agent': 'my-reddit-client'
+    }
+};
+
+app.get("/api", async (req, res) => {
     try {
-        const response = await axios.get('https://jsonplaceholder.typicode.com/posts');
+        const response = await axios.get(options.url, { headers: options.headers });
         res.json(response.data);
     } catch (error) {
-        res.status(500).send('Error fetching posts');
+        console.error('Error fetching data:', error);
+        res.status(500).send('Error fetching data');
     }
 });
 
 app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+    console.log(`My API is running on port ${port}...`);
 });
 
+module.exports = app;
