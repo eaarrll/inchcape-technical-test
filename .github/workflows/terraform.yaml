@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'terraform/**'
-      - '.github/workflows/terraform.yaml
+      - terraform/**
+      - .github/workflows/terraform.yaml
 
 jobs:
   terraform:
