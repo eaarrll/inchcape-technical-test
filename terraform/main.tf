@@ -11,17 +11,15 @@ resource "azurerm_service_plan" "example" {
   name                = "inchcape-asp"
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
-  sku {
-    tier = "Free"
-    size = "F1"
-  }
+  os_type             = "Linux"
+  sku_name            = "F1"
 }
 
 resource "azurerm_app_service" "example" {
   name                = "inchcape-app"
   location            = azurerm_resource_group.example.location
   resource_group_name = azurerm_resource_group.example.name
-  service_plan_id     = azurerm_service_plan.example.id
+  app_service_plan_id = azurerm_service_plan.example.id
 
   site_config {
     app_command_line = "node src/index.js"
@@ -40,4 +38,3 @@ resource "azurerm_app_service" "example" {
     ]
   }
 }
-
