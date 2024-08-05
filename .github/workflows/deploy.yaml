@@ -24,9 +24,11 @@ jobs:
         node-version: '14'
 
     - name: Install dependencies
+      working-directory: src
       run: npm install
 
     - name: Run tests
+      working-directory: src
       run: npm test
 
     - name: Deploy to Azure Web App
