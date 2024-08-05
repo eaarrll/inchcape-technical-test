@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'scr/**'
+      - 'web.config'
+      - '.github/workflows/deploy.yml'
+      - 'package.json'
+      - 'package-lock.json'
 
 jobs:
   build:
