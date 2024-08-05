@@ -11,11 +11,6 @@ on:
 jobs:
   terraform:
     name: 'Terraform'
-    env: 
-      AZURE_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      AZURE_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
     runs-on: ubuntu-latest
     environment: production
 
@@ -31,15 +26,33 @@ jobs:
       uses: hashicorp/setup-terraform@v1
 
     - name: Terraform Init
+      working-directory: terraform
+      env:
+        TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+        TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+        TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
       run: terraform init
 
     - name: Terraform Format
       run: terraform fmt -check
 
     - name: Terraform Plan
+      working-directory: terraform
+      env:
+        TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+        TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+        TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
       run: terraform plan -input=false
 
     - name: Terraform Apply
       if: github.ref == 'refs/heads/"main"'
+      working-directory: terraform
+      env:
+        TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+        TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+        TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
       run: terraform apply -auto-approve -input=false
 
