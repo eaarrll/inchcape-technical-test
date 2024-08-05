@@ -29,7 +29,7 @@ resource "azurerm_linux_web_app" "example" {
 
   site_config {
     app_command_line = "node src/index.js"
-    always_on        = true
+    always_on        = false
   }
 
   app_settings = {
@@ -44,8 +44,6 @@ resource "azurerm_linux_web_app" "example" {
   }
 
   lifecycle {
-    ignore_changes = [
-      site_config[0].scm_type
-    ]
+    ignore_changes = false
   }
 }
