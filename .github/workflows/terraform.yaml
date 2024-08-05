@@ -56,4 +56,5 @@ jobs:
         TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }} 
       run: terraform apply -auto-approve -input=false
       #run
+      ##run
 
