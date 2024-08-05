@@ -20,9 +20,11 @@ jobs:
           terraform_version: 1.0.0
 
       - name: Terraform Init
+        working-directory: terraform
         run: terraform init
 
       - name: Terraform Plan
+        working-directory: terraform
         run: terraform plan
         env:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
@@ -32,6 +34,7 @@ jobs:
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main'
+        working-directory: terraform
         run: terraform apply -auto-approve
         env:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
