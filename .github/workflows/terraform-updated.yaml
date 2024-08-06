@@ -25,12 +25,15 @@ jobs:
           terraform_version: 1.0.0
 
       - name: Terraform Init
+        working-directory: terraform
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -var-file="terraform/dev.tfvars"
+        working-directory: terraform
+        run: terraform plan -var-file="dev.tfvars"
 
       - name: Terraform Apply
+        working-directory: terraform
         run: terraform apply -auto-approve -var-file="terraform/dev.tfvars"
 
   deploy-test:
@@ -53,12 +56,15 @@ jobs:
           terraform_version: 1.0.0
 
       - name: Terraform Init
+        working-directory: terraform
         run: terraform init
 
       - name: Terraform Plan
+        working-directory: terraform
         run: terraform plan -var-file="terraform/test.tfvars"
 
       - name: Terraform Apply
+        working-directory: terraform
         run: terraform apply -auto-approve -var-file="teraform/test.tfvars"
 
   deploy-uat:
@@ -81,12 +87,15 @@ jobs:
           terraform_version: 1.0.0
 
       - name: Terraform Init
+        working-directory: terraform
         run: terraform init
 
       - name: Terraform Plan
+        working-directory: terraform
         run: terraform plan -var-file="terraform/uat.tfvars"
 
       - name: Terraform Apply
+        working-directory: terraform
         run: terraform apply -auto-approve -var-file="terraform/uat.tfvars"
 
   deploy-prod:
@@ -109,9 +118,11 @@ jobs:
           terraform_version: 1.0.0
 
       - name: Terraform Init
+        working-directory: terraform
         run: terraform init
 
       - name: Terraform Plan
+        working-directory: terraform
         run: terraform plan -var-file="terraform/prod.tfvars"
 
       - name: Manual Approval
