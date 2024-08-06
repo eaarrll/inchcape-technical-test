@@ -40,8 +40,6 @@ jobs:
     - name: Install dependencies
       working-directory: src
       run: |
-        rm package-lock.json
-        rm -r node_modules
         npm install -g
 
    # - name: Run tests
