@@ -19,6 +19,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v1
         with:
@@ -34,7 +39,7 @@ jobs:
 
       - name: Terraform Apply
         working-directory: terraform
-        run: terraform apply -auto-approve -var-file="terraform/dev.tfvars"
+        run: terraform apply -auto-approve -var-file="dev.tfvars"
 
   deploy-test:
     runs-on: ubuntu-latest
@@ -53,10 +58,7 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v1
@@ -69,11 +71,11 @@ jobs:
 
       - name: Terraform Plan
         working-directory: terraform
-        run: terraform plan -var-file="terraform/test.tfvars"
+        run: terraform plan -var-file="test.tfvars"
 
       - name: Terraform Apply
         working-directory: terraform
-        run: terraform apply -auto-approve -var-file="teraform/test.tfvars"
+        run: terraform apply -auto-approve -var-file="test.tfvars"
 
   deploy-uat:
     runs-on: ubuntu-latest
@@ -92,10 +94,7 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v1
@@ -108,11 +107,11 @@ jobs:
 
       - name: Terraform Plan
         working-directory: terraform
-        run: terraform plan -var-file="terraform/uat.tfvars"
+        run: terraform plan -var-file="uat.tfvars"
 
       - name: Terraform Apply
         working-directory: terraform
-        run: terraform apply -auto-approve -var-file="terraform/uat.tfvars"
+        run: terraform apply -auto-approve -var-file="uat.tfvars"
 
   deploy-prod:
     runs-on: ubuntu-latest
@@ -131,10 +130,7 @@ jobs:
       - name: Azure Login
         uses: azure/login@v1
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
           
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v1
@@ -147,7 +143,7 @@ jobs:
 
       - name: Terraform Plan
         working-directory: terraform
-        run: terraform plan -var-file="terraform/prod.tfvars"
+        run: terraform plan -var-file="prod.tfvars"
 
       - name: Manual Approval
         uses: hmarr/auto-approve-action@v2
@@ -155,5 +151,5 @@ jobs:
           approvers: "eaarrll"
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var-file="terraform/prod.tfvars"
+        run: terraform apply -auto-approve -var-file="prod.tfvars"
 
