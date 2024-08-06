@@ -12,7 +12,4 @@ terraform {
     key                   = "terraform.tfstate"
   }
 }
-provider "azurerm" {
-  use_oidc = true
-}
 
