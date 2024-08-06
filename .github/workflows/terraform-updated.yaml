@@ -29,7 +29,7 @@ jobs:
           creds: |
             {
               "clientId": "32ca3f9b-7759-4eae-989b-e6afd97aa5cc",
-              "clientSecret": "",
+              "clientSecret": "${{ secrets.ARM_CLIENT_SECRET }}",
               "subscriptionId": "d2363feb-a5e7-4392-819e-69ddc191b41c",
               "tenantId": "448a85c3-3457-421d-98bb-a064ea7a8d8c"
             }
