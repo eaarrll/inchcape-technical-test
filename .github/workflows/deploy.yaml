@@ -39,7 +39,10 @@ jobs:
 
     - name: Install dependencies
       working-directory: src
-      run: npm install
+      run: |
+        rm package-lock.json
+        rm -r node_modules
+        npm install -g
 
    # - name: Run tests
     #  working-directory: src
