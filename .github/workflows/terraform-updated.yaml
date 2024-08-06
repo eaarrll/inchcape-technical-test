@@ -28,10 +28,10 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -var-file="dev.tfvars"
+        run: terraform plan -var-file="terraform/dev.tfvars"
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var-file="dev.tfvars"
+        run: terraform apply -auto-approve -var-file="terraform/dev.tfvars"
 
   deploy-test:
     runs-on: ubuntu-latest
@@ -56,10 +56,10 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -var-file="test.tfvars"
+        run: terraform plan -var-file="terraform/test.tfvars"
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var-file="test.tfvars"
+        run: terraform apply -auto-approve -var-file="teraform/test.tfvars"
 
   deploy-uat:
     runs-on: ubuntu-latest
@@ -84,10 +84,10 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -var-file="uat.tfvars"
+        run: terraform plan -var-file="terraform/uat.tfvars"
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var-file="uat.tfvars"
+        run: terraform apply -auto-approve -var-file="terraform/uat.tfvars"
 
   deploy-prod:
     runs-on: ubuntu-latest
@@ -112,7 +112,7 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -var-file="prod.tfvars"
+        run: terraform plan -var-file="terraform/prod.tfvars"
 
       - name: Manual Approval
         uses: hmarr/auto-approve-action@v2
@@ -120,5 +120,5 @@ jobs:
           approvers: "eaarrll"
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var-file="prod.tfvars"
+        run: terraform apply -auto-approve -var-file="terraform/prod.tfvars"
 
