@@ -2,8 +2,6 @@ name: Application Pipeline
 
 on:
   push:
-    branches:
-      - main
     paths:
       - src/**
       - web.config
