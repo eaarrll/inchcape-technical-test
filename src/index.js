@@ -14,7 +14,7 @@ const options = {
 };
 
 app.get("/", (req, res) => {
-    res.send("Welcome to Inchcape Digital Technical Test");
+    res.send("Welcome to Inchcape Digital Technical Test!");
 });
 
 app.get("/api", async (req, res) => {
