@@ -152,4 +152,5 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve -var-file="prod.tfvars"
+        #run
 
