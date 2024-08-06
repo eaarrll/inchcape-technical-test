@@ -13,6 +13,10 @@ const options = {
     }
 };
 
+app.get("/", (req, res) => {
+    res.send("Welcome to Inchcape Digital Technical Test");
+});
+
 app.get("/api", async (req, res) => {
     try {
         const response = await axios.get(options.url, { headers: options.headers });
