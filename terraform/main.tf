@@ -169,6 +169,8 @@ resource "azurerm_linux_web_app" "sea_app" {
     LOG_ANALYTICS_WORKSPACE_ID           = azurerm_log_analytics_workspace.law.workspace_id
     WEBSITE_STACK                        = "node"
     WEBSITE_NODE_DEFAULT_VERSION         = "18"
+    WEBSITE_RUN_FROM_PACKAGE             = "1"
+    SCM_DO_BUILD_DURING_DEPLOYMENT       = "true"
   }
 
   https_only = true
@@ -204,6 +206,8 @@ resource "azurerm_linux_web_app" "br_app" {
     LOG_ANALYTICS_WORKSPACE_ID           = azurerm_log_analytics_workspace.law.workspace_id
     WEBSITE_STACK                        = "node"
     WEBSITE_NODE_DEFAULT_VERSION         = "18"
+    WEBSITE_RUN_FROM_PACKAGE             = "1"
+    SCM_DO_BUILD_DURING_DEPLOYMENT       = "true"
   }
 
   https_only = true
