@@ -1,4 +1,4 @@
-name: CI/CD for Infrastructure
+name: Infra Pipeline#
 
 on:
   push:
