@@ -1,52 +1,153 @@
-name: Application Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
-    paths:
-      - src/**
-      - web.config
-      - .github/workflows/deploy.yaml
+    branches:
+      - 'develop'
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to (uat, prod)'
+        required: true
+        type: string
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+env:
+  AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: inchcape-technical-test
-
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    
-    - uses: azure/login@v1
-      with:
-        client-id: ${{ secrets.ARM_CLIENT_ID }}
-        tenant-id: ${{ secrets.ARM_TENANT_ID }}
-        subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'
 
-    - name: Install dependencies
-      working-directory: src
-      run: |
-        npm install -g
+      - name: Install dependencies
+        run: npm install
+        working-directory: src
 
-   # - name: Run tests
-    #  working-directory: src
-     # run: npm test
+      - name: Run tests
+        run: npm test
+        working-directory: src
 
-    - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: inchcape-app-sea-dev
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: src/
-      #run
+      - name: Archive production artifacts
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
+        run: zip -r app.zip .
+        working-directory: src
+        continue-on-error: true
 
+      - name: Upload production artifact
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
+        uses: actions/upload-artifact@v2
+        with:
+          name: app-prod
+          path: src/app.zip
+
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Azure Login with OIDC
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Web App (Southeast Asia)
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: inchcape-app-sea-dev
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV_SE }}
+          package: ${{ github.workspace }}/src
+
+      - name: Deploy to Azure Web App (Brazil South)
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: inchcape-app-br-dev
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV_BR }}
+          package: ${{ github.workspace }}/src
+
+  deploy-test:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Azure Login with OIDC
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Web App (Southeast Asia)
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: myapp-se-test
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_TEST_SE }}
+          package: ${{ github.workspace }}/src
+
+      - name: Deploy to Azure Web App (Brazil South)
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: myapp-br-test
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_TEST_BR }}
+          package: ${{ github.workspace }}/src
+
+  deploy-uat:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/release/*'
+    steps:
+      - name: Azure Login with OIDC
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Web App (Southeast Asia)
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: myapp-se-uat
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_UAT_SE }}
+          package: ${{ github.workspace }}/src
+
+      - name: Deploy to Azure Web App (Brazil South)
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: myapp-br-uat
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_UAT_BR }}
+          package: ${{ github.workspace }}/src
+
+  deploy-prod:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event.inputs.environment == 'prod'
+    steps:
+      - name: Download production artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: app-prod
+          path: ./src
+
+      - name: Azure Login with OIDC
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Web App (Southeast Asia)
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: myapp-se-prod
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD_SE }}
+          package: ./src/app.zip
+
+      - name: Deploy to Azure Web App (Brazil South)
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: myapp-br-prod
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD_BR }}
+          package: ./src/app.zip
