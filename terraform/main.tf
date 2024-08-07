@@ -227,23 +227,21 @@ resource "azurerm_traffic_manager_profile" "traffic_manager" {
 }
 
 resource "azurerm_traffic_manager_external_endpoint" "sea_endpoint" {
-  name                = "sea-endpoint"
-  resource_group_name = azurerm_resource_group.rg.name
-  profile_name        = azurerm_traffic_manager_profile.traffic_manager.name
-  type                = "externalEndpoints"
-  target              = azurerm_public_ip.app_gateway_public_ip.ip_address
-  endpoint_location   = var.location_se
-  priority            = 1
+  name          = "sea-endpoint"
+  profile_id    = azurerm_traffic_manager_profile.traffic_manager.id
+  target        = azurerm_public_ip.app_gateway_public_ip.ip_address
+  endpoint_location = var.location_se
+  priority      = 1
+  weight        = 1
 }
 
 resource "azurerm_traffic_manager_external_endpoint" "br_endpoint" {
-  name                = "br-endpoint"
-  resource_group_name = azurerm_resource_group.rg.name
-  profile_name        = azurerm_traffic_manager_profile.traffic_manager.name
-  type                = "externalEndpoints"
-  target              = azurerm_public_ip.app_gateway_public_ip.ip_address
-  endpoint_location   = var.location_br
-  priority            = 2
+  name          = "br-endpoint"
+  profile_id    = azurerm_traffic_manager_profile.traffic_manager.id
+  target        = azurerm_public_ip.app_gateway_public_ip.ip_address
+  endpoint_location = var.location_br
+  priority      = 2
+  weight        = 1
 }
 
 # Autoscale settings for the App Service Plan in Southeast Asia
