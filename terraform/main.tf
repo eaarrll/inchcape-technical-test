@@ -74,6 +74,7 @@ resource "azurerm_application_gateway" "app_gateway" {
     port                  = 80
     protocol              = "Http"
     request_timeout       = 20
+    probe_name            = "http-probe"  # Add this line to reference the probe
   }
 
   probe {
@@ -99,7 +100,6 @@ resource "azurerm_application_gateway" "app_gateway" {
     http_listener_name         = "http-listener"
     backend_address_pool_name  = "backend-address-pool"
     backend_http_settings_name = "default-backend-http-settings"
-    probe_name                 = "http-probe"
   }
 
   tags = {
@@ -156,7 +156,6 @@ resource "azurerm_linux_web_app" "sea_app" {
   site_config {
     app_command_line = "npm start"
     always_on        = true
-    linux_fx_version = "NODE|18-lts"
   }
 
   app_settings = {
@@ -167,6 +166,8 @@ resource "azurerm_linux_web_app" "sea_app" {
     APPINSIGHTS_INSTRUMENTATIONKEY       = azurerm_application_insights.ai.instrumentation_key
     APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.ai.connection_string
     LOG_ANALYTICS_WORKSPACE_ID           = azurerm_log_analytics_workspace.law.workspace_id
+    WEBSITE_STACK                        = "node"
+    WEBSITE_NODE_DEFAULT_VERSION         = "18"
   }
 
   https_only = true
@@ -190,7 +191,6 @@ resource "azurerm_linux_web_app" "br_app" {
   site_config {
     app_command_line = "npm start"
     always_on        = true
-    linux_fx_version = "NODE|18-lts"
   }
 
   app_settings = {
@@ -201,6 +201,8 @@ resource "azurerm_linux_web_app" "br_app" {
     APPINSIGHTS_INSTRUMENTATIONKEY       = azurerm_application_insights.ai.instrumentation_key
     APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.ai.connection_string
     LOG_ANALYTICS_WORKSPACE_ID           = azurerm_log_analytics_workspace.law.workspace_id
+    WEBSITE_STACK                        = "node"
+    WEBSITE_NODE_DEFAULT_VERSION         = "18"
   }
 
   https_only = true
