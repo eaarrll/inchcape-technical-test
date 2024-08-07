@@ -27,10 +27,7 @@ resource "azurerm_service_plan" "sea_asp" {
   location            = var.location_se
   resource_group_name = azurerm_resource_group.rg.name
   os_type             = "Linux"
-  sku {
-    tier = "Standard"
-    size = "S1"
-  }
+  sku_name            = "S1"
 }
 
 # App Service Plan in Brazil South
@@ -39,10 +36,7 @@ resource "azurerm_service_plan" "br_asp" {
   location            = var.location_br
   resource_group_name = azurerm_resource_group.rg.name
   os_type             = "Linux"
-  sku {
-    tier = "Standard"
-    size = "S1"
-  }
+  sku_name            = "S1"
 }
 
 # Linux Web App in Southeast Asia
@@ -121,7 +115,7 @@ resource "azurerm_frontdoor" "frontdoor" {
   resource_group_name = azurerm_resource_group.rg.name
 
   routing_rule {
-    name      = "routing-rule1"
+    name               = "routing-rule1"
     frontend_endpoints = ["frontend-endpoint1"]
     accepted_protocols = ["Https"]
     patterns_to_match  = ["/*"]
@@ -132,7 +126,9 @@ resource "azurerm_frontdoor" "frontdoor" {
   }
 
   backend_pool {
-    name = "backend-pool1"
+    name                = "backend-pool1"
+    load_balancing_name = "load-balancing-settings1"
+    health_probe_name   = "health-probe-settings1"
 
     backend {
       host_header = "inchcape-app-sea-${var.environment}.azurewebsites.net"
@@ -151,19 +147,19 @@ resource "azurerm_frontdoor" "frontdoor" {
       priority    = 2
       weight      = 50
     }
+  }
 
-    load_balancing_settings {
-      name   = "load-balancing-settings1"
-      sample_size     = 4
-      successful_samples_required = 2
-    }
+  backend_pool_health_probe {
+    name     = "health-probe-settings1"
+    protocol = "Https"
+    path     = "/"
+    interval_in_seconds = 30
+  }
 
-    health_probe_settings {
-      name     = "health-probe-settings1"
-      protocol = "Https"
-      path     = "/"
-      interval_in_seconds = 30
-    }
+  backend_pool_load_balancing {
+    name   = "load-balancing-settings1"
+    sample_size     = 4
+    successful_samples_required = 2
   }
 
   frontend_endpoint {
@@ -303,3 +299,4 @@ resource "azurerm_monitor_autoscale_setting" "autoscale_br" {
     }
   }
 }
+
