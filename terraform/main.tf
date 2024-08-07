@@ -1,15 +1,17 @@
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "inchcape-rg"
+    storage_account_name = "inchcapesa"
+    container_name       = "tfstate"
+    key                  = "terraform.tfstate"
+  }
+}
+
 provider "azurerm" {
+  
+  version = ">= 3.50.0"
   features {}
 
-  use_oidc = true
-
-  client_id       = var.client_id
-  client_secret   = var.client_secret
-  subscription_id = var.subscription_id
-  tenant_id       = var.tenant_id
-
-  oidc_request_token = var.oidc_request_token
-  oidc_request_url   = var.oidc_request_url
 }
 
 # Resource Group
