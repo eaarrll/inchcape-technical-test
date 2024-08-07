@@ -5,7 +5,7 @@ on:
     branches:
       - main
 
-ermissions:
+permissions:
   id-token: write
   contents: read
   
