@@ -75,7 +75,7 @@ resource "azurerm_application_gateway" "app_gateway" {
     protocol              = "Http"
     request_timeout       = 20
     probe_name            = "http-probe"
-    pick_host_name_from_backend_address = true
+    host                  = "inchcape-app-sea-${var.environment}.azurewebsites.net"
   }
 
   probe {
