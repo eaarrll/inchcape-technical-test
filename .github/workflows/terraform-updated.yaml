@@ -8,10 +8,18 @@ on:
 permissions:
   id-token: write
   contents: read
+
+env:
+  ARM_CLIENT_ID: "${{ secrets.ARM_CLIENT_ID }}"
+  ARM_SUBSCRIPTION_ID: "${{ secrets.ARM_SUBSCRIPTION_ID }}"
+  ARM_TENANT_ID: "${{ secrets.ARM_TENANT_ID }}"
   
 jobs:
   deploy-dev:
     runs-on: ubuntu-latest
+    env:
+      #this is needed since we are running terraform with read-only permissions
+      ARM_SKIP_PROVIDER_REGISTRATION: true
     defaults:
       run:
         working-directory: terraform
@@ -21,33 +29,47 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_wrapper: false
 
-      - name: Get Azure CLI
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          #- name: Get Azure CLI
+          #uses: azure/login@v1
+          #with:
+          #creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Get Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 'latest'
-          terraform_wrapper: false
+          #- name: Get Terraform
+          #uses: hashicorp/setup-terraform@v1
+          #with:
+          #terraform_version: 'latest'
+          #terraform_wrapper: false
 
-      - name: Prepare environment variables
-        env:
-          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-        run: | 
+          #- name: Prepare environment variables
+          #env:
+          #AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+          #run: | 
           # Parse Azure secret into Terraform variables
+<<<<<<< HEAD
           $servicePrincipal = $env:AZURE_CREDENTIALS | ConvertFrom-Json
           $env:ARM_CLIENT_ID = $servicePrincipal.clientId
           $env:ARM_CLIENT_SECRET = $servicePrincipal.clientSecret
           $env:ARM_SUBSCRIPTION_ID = $servicePrincipal.subscriptionId
         shell: pwsh
+=======
+          #$servicePrincipal = $env:AZURE_CREDENTIALS | ConvertFrom-Json
+          #$env:ARM_CLIENT_ID = $servicePrincipal.clientId
+          #$env:ARM_CLIENT_SECRET = $servicePrincipal.clientSecret
+          #$env:ARM_SUBSCRIPTION_ID = $servicePrincipal.subscriptionId
+          #$env:ARM_TENANT_ID = $servicePrincipal.tenantId
+
+          # Save environment variable setup for subsequent steps
+          #Get-ChildItem -Path Env: -Recurse -Include ARM_*,TF_VAR_* | ForEach-Object {Write-Output "$($_.Name)=$($_.Value)"} >> $env:GITHUB_ENV
+          #shell: pwsh
+>>>>>>> eaf006a (Update)
 
       - name: Terraform Init
         run: terraform init
-        shell: pwsh
+          #shell: pwsh
 
       - name: Terraform Plan
         env:
@@ -63,6 +85,7 @@ jobs:
           TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
           TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+        environment: inchcape-technical-test  
         run: terraform apply -auto-approve -var-file="dev.tfvars"
 
   deploy-test:
