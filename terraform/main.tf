@@ -226,8 +226,9 @@ resource "azurerm_monitor_autoscale_setting" "autoscale_sea" {
 
   notification {
     email {
-      send_to_subscription_administrator    = true
-      send_to_subscription_co_administrator = true
+      # Remove unsupported notifications
+      send_to_subscription_administrator    = false
+      send_to_subscription_co_administrator = false
     }
   }
 }
@@ -290,9 +291,9 @@ resource "azurerm_monitor_autoscale_setting" "autoscale_br" {
 
   notification {
     email {
-      send_to_subscription_administrator    = true
-      send_to_subscription_co_administrator = true
+      # Remove unsupported notifications
+      send_to_subscription_administrator    = false
+      send_to_subscription_co_administrator = false
     }
   }
 }
-
