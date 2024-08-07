@@ -74,7 +74,7 @@ resource "azurerm_application_gateway" "app_gateway" {
     port                  = 80
     protocol              = "Http"
     request_timeout       = 20
-    probe_name            = "http-probe"  # Add this line to reference the probe
+    probe_name            = "http-probe"
   }
 
   probe {
