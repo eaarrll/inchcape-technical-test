@@ -75,14 +75,14 @@ jobs:
       - name: Deploy to Azure Web App (Southeast Asia)
         uses: azure/webapps-deploy@v2
         with:
-          app-name: myapp-se-dev
+          app-name: inchcape-app-sea-dev
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV_SE }}
           package: ${{ github.workspace }}/app.zip
 
       - name: Deploy to Azure Web App (Brazil South)
         uses: azure/webapps-deploy@v2
         with:
-          app-name: myapp-br-dev
+          app-name: inchcape-app-br-dev
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV_BR }}
           package: ${{ github.workspace }}/app.zip
 
