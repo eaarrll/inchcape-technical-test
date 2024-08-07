@@ -105,9 +105,9 @@ resource "azurerm_linux_web_app" "br_app" {
   }
 }
 
-# Application Gateway
-resource "azurerm_application_gateway" "app_gateway" {
-  name                = "inchcape-app-gateway-${var.environment}"
+# Application Gateway in Southeast Asia
+resource "azurerm_application_gateway" "app_gateway_sea" {
+  name                = "inchcape-app-gateway-sea-${var.environment}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -119,7 +119,7 @@ resource "azurerm_application_gateway" "app_gateway" {
 
   gateway_ip_configuration {
     name      = "my-gateway-ip-configuration"
-    subnet_id = azurerm_subnet.subnet.id
+    subnet_id = azurerm_subnet.gateway_subnet_sea.id
   }
 
   frontend_port {
@@ -129,7 +129,7 @@ resource "azurerm_application_gateway" "app_gateway" {
 
   frontend_ip_configuration {
     name                 = "frontend-ip-configuration"
-    public_ip_address_id = azurerm_public_ip.app_gateway_public_ip.id
+    public_ip_address_id = azurerm_public_ip.app_gateway_public_ip_sea.id
   }
 
   backend_address_pool {
@@ -164,30 +164,115 @@ resource "azurerm_application_gateway" "app_gateway" {
   }
 }
 
-resource "azurerm_public_ip" "app_gateway_public_ip" {
-  name                = "app-gateway-public-ip-${var.environment}"
+# Application Gateway in Brazil South
+resource "azurerm_application_gateway" "app_gateway_br" {
+  name                = "inchcape-app-gateway-br-${var.environment}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  sku {
+    name     = "Standard_v2"
+    tier     = "Standard_v2"
+    capacity = 2
+  }
+
+  gateway_ip_configuration {
+    name      = "my-gateway-ip-configuration"
+    subnet_id = azurerm_subnet.gateway_subnet_br.id
+  }
+
+  frontend_port {
+    name = "frontend-port"
+    port = 80
+  }
+
+  frontend_ip_configuration {
+    name                 = "frontend-ip-configuration"
+    public_ip_address_id = azurerm_public_ip.app_gateway_public_ip_br.id
+  }
+
+  backend_address_pool {
+    name = "backend-address-pool"
+  }
+
+  backend_http_settings {
+    name                  = "default-backend-http-settings"
+    cookie_based_affinity = "Disabled"
+    port                  = 80
+    protocol              = "Http"
+    request_timeout       = 20
+  }
+
+  http_listener {
+    name                           = "http-listener"
+    frontend_ip_configuration_name = "frontend-ip-configuration"
+    frontend_port_name             = "frontend-port"
+    protocol                       = "Http"
+  }
+
+  request_routing_rule {
+    name                       = "rule1"
+    rule_type                  = "Basic"
+    http_listener_name         = "http-listener"
+    backend_address_pool_name  = "backend-address-pool"
+    backend_http_settings_name = "default-backend-http-settings"
+  }
+
+  tags = {
+    environment = var.environment
+  }
+}
+
+resource "azurerm_public_ip" "app_gateway_public_ip_sea" {
+  name                = "app-gateway-public-ip-sea-${var.environment}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Dynamic"
 }
 
-resource "azurerm_virtual_network" "vnet" {
-  name                = "app-gateway-vnet-${var.environment}"
+resource "azurerm_public_ip" "app_gateway_public_ip_br" {
+  name                = "app-gateway-public-ip-br-${var.environment}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  allocation_method   = "Dynamic"
+}
+
+resource "azurerm_virtual_network" "vnet_sea" {
+  name                = "app-gateway-vnet-sea-${var.environment}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   address_space       = ["10.0.0.0/16"]
 
   subnet {
     name           = "default"
-    address_prefix = "10.0.1.0/24"
+    address_prefix = "10.0.0.0/24"
   }
 }
 
-resource "azurerm_subnet" "subnet" {
+resource "azurerm_virtual_network" "vnet_br" {
+  name                = "app-gateway-vnet-br-${var.environment}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  address_space       = ["10.1.0.0/16"]
+
+  subnet {
+    name           = "default"
+    address_prefix = "10.1.0.0/24"
+  }
+}
+
+resource "azurerm_subnet" "gateway_subnet_sea" {
   name                 = "gateway-subnet"
   resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
+  virtual_network_name = azurerm_virtual_network.vnet_sea.name
   address_prefixes     = ["10.0.1.0/24"]
+}
+
+resource "azurerm_subnet" "gateway_subnet_br" {
+  name                 = "gateway-subnet"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet_br.name
+  address_prefixes     = ["10.1.1.0/24"]
 }
 
 # Autoscale settings for the App Service Plan in Southeast Asia
@@ -315,7 +400,7 @@ resource "azurerm_monitor_autoscale_setting" "autoscale_br" {
     email {
       # Remove unsupported notifications
       send_to_subscription_administrator    = false
-      send_to_subscription_co_administrator = false
+      send_to_subscription co_administrator = false
     }
   }
 }
