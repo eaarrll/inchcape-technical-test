@@ -62,12 +62,10 @@ resource "azurerm_application_gateway" "app_gateway" {
 
   backend_address_pool {
     name = "backend-address-pool"
-    backend_addresses {
-      fqdn = "inchcape-app-sea-${var.environment}.azurewebsites.net"
-    }
-    backend_addresses {
-      fqdn = "inchcape-app-br-${var.environment}.azurewebsites.net"
-    }
+    fqdns = [
+      "inchcape-app-sea-${var.environment}.azurewebsites.net",
+      "inchcape-app-br-${var.environment}.azurewebsites.net"
+    ]
   }
 
   backend_http_settings {
