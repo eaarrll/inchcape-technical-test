@@ -12,7 +12,11 @@ permissions:
 jobs:
   deploy-dev:
     runs-on: ubuntu-latest
-      
+    defaults:
+      runs-on:
+        working-directory: terraform
+
+    steps: 
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -46,7 +50,6 @@ jobs:
           shell: pwsh
 
       - name: Terraform Init
-        working-directory: terraform
         run: terraform init
         shell: pwsh
 
