@@ -1,4 +1,4 @@
-name: CI/CD Pipeline #
+name: CI/CD Pipeline
 
 on:
   push:
@@ -33,22 +33,30 @@ jobs:
         run: npm install
         working-directory: src
 
+      - name: Start the application
+        run: |
+          npm start &
+          sleep 5
+        working-directory: src
+
       - name: Run tests
         run: npm test
         working-directory: src
 
-      - name: Archive production artifacts
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
-        run: zip -r app.zip .
-        working-directory: src
-        continue-on-error: true
+      - name: Prepare package for deployment
+        run: |
+          mkdir -p deploy
+          cp -r src/* deploy/
+          cd deploy
+          zip -r ../app.zip .
+        working-directory: .
 
       - name: Upload production artifact
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
         uses: actions/upload-artifact@v2
         with:
           name: app-prod
-          path: src/app.zip
+          path: app.zip
 
   deploy-dev:
     runs-on: ubuntu-latest
@@ -63,16 +71,16 @@ jobs:
       - name: Deploy to Azure Web App (Southeast Asia)
         uses: azure/webapps-deploy@v2
         with:
-          app-name: inchcape-app-sea-dev
+          app-name: myapp-se-dev
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV_SE }}
-          package: ${{ github.workspace }}/src
+          package: ${{ github.workspace }}/app.zip
 
       - name: Deploy to Azure Web App (Brazil South)
         uses: azure/webapps-deploy@v2
         with:
-          app-name: inchcape-app-br-dev
+          app-name: myapp-br-dev
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV_BR }}
-          package: ${{ github.workspace }}/src
+          package: ${{ github.workspace }}/app.zip
 
   deploy-test:
     runs-on: ubuntu-latest
@@ -89,14 +97,14 @@ jobs:
         with:
           app-name: myapp-se-test
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_TEST_SE }}
-          package: ${{ github.workspace }}/src
+          package: ${{ github.workspace }}/app.zip
 
       - name: Deploy to Azure Web App (Brazil South)
         uses: azure/webapps-deploy@v2
         with:
           app-name: myapp-br-test
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_TEST_BR }}
-          package: ${{ github.workspace }}/src
+          package: ${{ github.workspace }}/app.zip
 
   deploy-uat:
     runs-on: ubuntu-latest
@@ -113,14 +121,14 @@ jobs:
         with:
           app-name: myapp-se-uat
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_UAT_SE }}
-          package: ${{ github.workspace }}/src
+          package: ${{ github.workspace }}/app.zip
 
       - name: Deploy to Azure Web App (Brazil South)
         uses: azure/webapps-deploy@v2
         with:
           app-name: myapp-br-uat
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_UAT_BR }}
-          package: ${{ github.workspace }}/src
+          package: ${{ github.workspace }}/app.zip
 
   deploy-prod:
     runs-on: ubuntu-latest
@@ -151,3 +159,4 @@ jobs:
           app-name: myapp-br-prod
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_PROD_BR }}
           package: ./src/app.zip
+
