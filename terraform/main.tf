@@ -49,7 +49,6 @@ resource "azurerm_linux_web_app" "sea_app" {
   site_config {
     app_command_line = "npm start"
     always_on        = true
-    linux_fx_version = "NODE|18-lts"
   }
 
   app_settings = {
@@ -83,7 +82,6 @@ resource "azurerm_linux_web_app" "br_app" {
   site_config {
     app_command_line = "npm start"
     always_on        = true
-    linux_fx_version = "NODE|18-lts"
   }
 
   app_settings = {
@@ -103,9 +101,7 @@ resource "azurerm_linux_web_app" "br_app" {
   }
 
   lifecycle {
-    ignore_changes = [
-      site_config[0].scm_type
-    ]
+    ignore_changes = all
   }
 }
 
