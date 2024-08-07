@@ -47,13 +47,18 @@ jobs:
         run: npm test
         working-directory: src
 
-      #- name: Prepare package for deployment
-        #run: |
-          #cd src
-          #zip -r ../app.zip .
-          #pwd
-        #working-directory: .
+      - name: Prepare package for deployment
+        run: |
+          cd src
+          zip -r ../app.zip .
+          pwd
+        working-directory: .
 
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-app
+          path: .
       #- name: Upload production artifact
         #if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod'
         #uses: actions/upload-artifact@v2
@@ -71,19 +76,24 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: node-app
+
       - name: Deploy to Azure Web App (Southeast Asia)
         uses: azure/webapps-deploy@v2
         with:
           app-name: inchcape-app-sea-dev
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV_SE }}
-          package: src
+          package: .
 
       - name: Deploy to Azure Web App (Brazil South)
         uses: azure/webapps-deploy@v2
         with:
           app-name: inchcape-app-br-dev
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV_BR }}
-          package: src
+          package: .
 
   deploy-test:
     runs-on: ubuntu-latest
