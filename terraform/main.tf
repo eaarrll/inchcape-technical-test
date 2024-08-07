@@ -51,13 +51,8 @@ resource "azurerm_application_gateway" "app_gateway" {
   }
 
   frontend_port {
-    name = "frontend-port-sea"
+    name = "frontend-port"
     port = 80
-  }
-
-  frontend_port {
-    name = "frontend-port-br"
-    port = 8080
   }
 
   frontend_ip_configuration {
@@ -66,13 +61,13 @@ resource "azurerm_application_gateway" "app_gateway" {
   }
 
   backend_address_pool {
-    name  = "backend-address-pool-sea"
-    fqdns = ["inchcape-app-sea-${var.environment}.azurewebsites.net"]
-  }
-
-  backend_address_pool {
-    name  = "backend-address-pool-br"
-    fqdns = ["inchcape-app-br-${var.environment}.azurewebsites.net"]
+    name = "backend-address-pool"
+    backend_addresses {
+      fqdn = "inchcape-app-sea-${var.environment}.azurewebsites.net"
+    }
+    backend_addresses {
+      fqdn = "inchcape-app-br-${var.environment}.azurewebsites.net"
+    }
   }
 
   backend_http_settings {
@@ -84,32 +79,17 @@ resource "azurerm_application_gateway" "app_gateway" {
   }
 
   http_listener {
-    name                           = "http-listener-sea"
+    name                           = "http-listener"
     frontend_ip_configuration_name = "frontend-ip-configuration"
-    frontend_port_name             = "frontend-port-sea"
-    protocol                       = "Http"
-  }
-
-  http_listener {
-    name                           = "http-listener-br"
-    frontend_ip_configuration_name = "frontend-ip-configuration"
-    frontend_port_name             = "frontend-port-br"
+    frontend_port_name             = "frontend-port"
     protocol                       = "Http"
   }
 
   request_routing_rule {
-    name                       = "rule1"
+    name                       = "routing-rule"
     rule_type                  = "Basic"
-    http_listener_name         = "http-listener-sea"
-    backend_address_pool_name  = "backend-address-pool-sea"
-    backend_http_settings_name = "default-backend-http-settings"
-  }
-
-  request_routing_rule {
-    name                       = "rule2"
-    rule_type                  = "Basic"
-    http_listener_name         = "http-listener-br"
-    backend_address_pool_name  = "backend-address-pool-br"
+    http_listener_name         = "http-listener"
+    backend_address_pool_name  = "backend-address-pool"
     backend_http_settings_name = "default-backend-http-settings"
   }
 
@@ -219,43 +199,6 @@ resource "azurerm_linux_web_app" "br_app" {
   lifecycle {
     ignore_changes = all
   }
-}
-
-# Traffic Manager
-resource "azurerm_traffic_manager_profile" "traffic_manager" {
-  name                = "inchcape-tm-${var.environment}"
-  resource_group_name = azurerm_resource_group.rg.name
-  traffic_routing_method = "Performance"
-  dns_config {
-    relative_name = "inchcape-tm-${var.environment}"
-    ttl           = 30
-  }
-
-  monitor_config {
-    protocol = "HTTP"
-    port     = 80
-    path     = "/"
-  }
-
-  profile_status = "Enabled"
-}
-
-resource "azurerm_traffic_manager_external_endpoint" "sea_endpoint" {
-  name          = "sea-endpoint"
-  profile_id    = azurerm_traffic_manager_profile.traffic_manager.id
-  target        = azurerm_linux_web_app.sea_app.default_site_hostname
-  endpoint_location = var.location_se
-  priority      = 1
-  weight        = 1
-}
-
-resource "azurerm_traffic_manager_external_endpoint" "br_endpoint" {
-  name          = "br-endpoint"
-  profile_id    = azurerm_traffic_manager_profile.traffic_manager.id
-  target        = azurerm_linux_web_app.br_app.default_site_hostname
-  endpoint_location = var.location_br
-  priority      = 2
-  weight        = 1
 }
 
 # Autoscale settings for the App Service Plan in Southeast Asia
