@@ -151,7 +151,14 @@ resource "azurerm_application_gateway" "app_gateway" {
   }
 
   http_listener {
-    name                           = "http-listener"
+    name                           = "http-listener-sea"
+    frontend_ip_configuration_name = "frontend-ip-configuration"
+    frontend_port_name             = "frontend-port"
+    protocol                       = "Http"
+  }
+
+  http_listener {
+    name                           = "http-listener-br"
     frontend_ip_configuration_name = "frontend-ip-configuration"
     frontend_port_name             = "frontend-port"
     protocol                       = "Http"
@@ -160,7 +167,7 @@ resource "azurerm_application_gateway" "app_gateway" {
   request_routing_rule {
     name                       = "rule1"
     rule_type                  = "Basic"
-    http_listener_name         = "http-listener"
+    http_listener_name         = "http-listener-sea"
     backend_address_pool_name  = "backend-address-pool-sea"
     backend_http_settings_name = "default-backend-http-settings"
   }
@@ -168,7 +175,7 @@ resource "azurerm_application_gateway" "app_gateway" {
   request_routing_rule {
     name                       = "rule2"
     rule_type                  = "Basic"
-    http_listener_name         = "http-listener"
+    http_listener_name         = "http-listener-br"
     backend_address_pool_name  = "backend-address-pool-br"
     backend_http_settings_name = "default-backend-http-settings"
   }
@@ -229,7 +236,7 @@ resource "azurerm_traffic_manager_profile" "traffic_manager" {
 resource "azurerm_traffic_manager_external_endpoint" "sea_endpoint" {
   name          = "sea-endpoint"
   profile_id    = azurerm_traffic_manager_profile.traffic_manager.id
-  target        = azurerm_public_ip.app_gateway_public_ip.ip_address
+  target        = "inchcape-app-sea-${var.environment}.azurewebsites.net"
   endpoint_location = var.location_se
   priority      = 1
   weight        = 1
@@ -238,7 +245,7 @@ resource "azurerm_traffic_manager_external_endpoint" "sea_endpoint" {
 resource "azurerm_traffic_manager_external_endpoint" "br_endpoint" {
   name          = "br-endpoint"
   profile_id    = azurerm_traffic_manager_profile.traffic_manager.id
-  target        = azurerm_public_ip.app_gateway_public_ip.ip_address
+  target        = "inchcape-app-br-${var.environment}.azurewebsites.net"
   endpoint_location = var.location_br
   priority      = 2
   weight        = 1
