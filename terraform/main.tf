@@ -326,7 +326,7 @@ resource "azurerm_monitor_autoscale_setting" "autoscale_br" {
     email {
       # Remove unsupported notifications
       send_to_subscription_administrator    = false
-      send_to subscription_co_administrator = false
+      send_to_subscription_co_administrator = false
     }
   }
 }
