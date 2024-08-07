@@ -17,7 +17,7 @@ permissions:
 jobs:
   deploy-dev:
     runs-on: ubuntu-latest
-      #environment: inchcape-technical-test
+    environment: inchcape-technical-test
       #env:
       #this is needed since we are running terraform with read-only permissions
       #ARM_SKIP_PROVIDER_REGISTRATION: true
@@ -50,11 +50,11 @@ jobs:
           AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
         run: | 
           #Parse Azure secret into Terraform variables
-          #$servicePrincipal = $env:AZURE_CREDENTIALS | ConvertFrom-Json
-          #$env:ARM_CLIENT_ID = $servicePrincipal.clientId
-          #$env:ARM_CLIENT_SECRET = $servicePrincipal.clientSecret
-          #$env:ARM_SUBSCRIPTION_ID = $servicePrincipal.subscriptionId
-          #$env:ARM_TENANT_ID = $servicePrincipal.tenantId
+          $servicePrincipal = $env:AZURE_CREDENTIALS | ConvertFrom-Json
+          $env:ARM_CLIENT_ID = $servicePrincipal.clientId
+          $env:ARM_CLIENT_SECRET = $servicePrincipal.clientSecret
+          $env:ARM_SUBSCRIPTION_ID = $servicePrincipal.subscriptionId
+          $env:ARM_TENANT_ID = $servicePrincipal.tenantId
 
           # Save environment variable setup for subsequent steps
           Get-ChildItem -Path Env: -Recurse -Include ARM_*,TF_VAR_* | ForEach-Object {Write-Output "$($_.Name)=$($_.Value)"} >> $env:GITHUB_ENV
@@ -65,19 +65,19 @@ jobs:
         shell: pwsh
 
       - name: Terraform Plan
-        env:
-          TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
-          TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
-          TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+        #env:
+        # TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+        # TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+        # TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        # TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
         run: terraform plan -var-file="dev.tfvars"
 
       - name: Terraform Apply
-        env:
-          TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
-          TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
-          TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+        #env:
+        # TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+        # TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+        # TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        # TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
         run: terraform apply -auto-approve -var-file="dev.tfvars"
 
   deploy-test:
