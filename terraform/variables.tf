@@ -19,7 +19,16 @@ variable "tenant_id" {
   type        = string
 }
 
-variable "oidc_token" {}
-variable "oidc_token_file_path" {}
-variable "oidc_request_token" {}
-variable "oidc_request_url" {}
+variable "location_se" {
+  description = "SE location"
+  type        = string
+}
+
+variable "location_br" {                                                                                                                                                                                           description = "Latam location"
+  type        = string                                                                                                                                                                                           
+}
+
+variable "environment" {
+  description = "environment"
+  type        = string
+}
