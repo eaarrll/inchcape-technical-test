@@ -65,19 +65,19 @@ jobs:
         shell: pwsh
 
       - name: Terraform Plan
-        #env:
-        # TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
-        # TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
-        # TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-        # TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+        env:
+          TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+          TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+          TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
         run: terraform plan -var-file="dev.tfvars"
 
       - name: Terraform Apply
-        #env:
-        # TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
-        # TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
-        # TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-        # TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+        env:
+          TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+          TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+          TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
         run: terraform apply -auto-approve -var-file="dev.tfvars"
 
   deploy-test:
