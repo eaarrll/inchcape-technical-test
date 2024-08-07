@@ -105,67 +105,89 @@ resource "azurerm_linux_web_app" "br_app" {
   }
 }
 
-# Front Door
-resource "azurerm_frontdoor" "frontdoor" {
-  name                = "inchcape-frontdoor-${var.environment}"
+# Application Gateway
+resource "azurerm_application_gateway" "app_gateway" {
+  name                = "inchcape-app-gateway-${var.environment}"
+  location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
-  routing_rule {
-    name               = "routing-rule1"
-    frontend_endpoints = ["frontend-endpoint1"]
-    accepted_protocols = ["Https"]
-    patterns_to_match  = ["/*"]
-    forwarding_configuration {
-      forwarding_protocol = "HttpsOnly"
-      backend_pool_name   = "backend-pool1"
-    }
+  sku {
+    name     = "Standard_v2"
+    tier     = "Standard_v2"
+    capacity = 2
   }
 
-  backend_pool {
-    name                = "backend-pool1"
-    load_balancing_name = "load-balancing-settings1"
-    health_probe_name   = "health-probe-settings1"
-
-    backend {
-      host_header = "inchcape-app-sea-${var.environment}.azurewebsites.net"
-      address     = "inchcape-app-sea-${var.environment}.azurewebsites.net"
-      http_port   = 80
-      https_port  = 443
-      priority    = 1
-      weight      = 50
-    }
-
-    backend {
-      host_header = "inchcape-app-br-${var.environment}.azurewebsites.net"
-      address     = "inchcape-app-br-${var.environment}.azurewebsites.net"
-      http_port   = 80
-      https_port  = 443
-      priority    = 2
-      weight      = 50
-    }
+  gateway_ip_configuration {
+    name      = "my-gateway-ip-configuration"
+    subnet_id = azurerm_subnet.subnet.id
   }
 
-  backend_pool_health_probe {
-    name     = "health-probe-settings1"
-    protocol = "Https"
-    path     = "/"
-    interval_in_seconds = 30
+  frontend_port {
+    name = "frontend-port"
+    port = 80
   }
 
-  backend_pool_load_balancing {
-    name   = "load-balancing-settings1"
-    sample_size     = 4
-    successful_samples_required = 2
+  frontend_ip_configuration {
+    name                 = "frontend-ip-configuration"
+    public_ip_address_id = azurerm_public_ip.app_gateway_public_ip.id
   }
 
-  frontend_endpoint {
-    name      = "frontend-endpoint1"
-    host_name = "example-frontdoor-${var.environment}.azurefd.net"
+  backend_address_pool {
+    name = "backend-address-pool"
+  }
+
+  backend_http_settings {
+    name                  = "default-backend-http-settings"
+    cookie_based_affinity = "Disabled"
+    port                  = 80
+    protocol              = "Http"
+    request_timeout       = 20
+  }
+
+  http_listener {
+    name                           = "http-listener"
+    frontend_ip_configuration_name = "frontend-ip-configuration"
+    frontend_port_name             = "frontend-port"
+    protocol                       = "Http"
+  }
+
+  request_routing_rule {
+    name                       = "rule1"
+    rule_type                  = "Basic"
+    http_listener_name         = "http-listener"
+    backend_address_pool_name  = "backend-address-pool"
+    backend_http_settings_name = "default-backend-http-settings"
   }
 
   tags = {
     environment = var.environment
   }
+}
+
+resource "azurerm_public_ip" "app_gateway_public_ip" {
+  name                = "app-gateway-public-ip-${var.environment}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  allocation_method   = "Dynamic"
+}
+
+resource "azurerm_virtual_network" "vnet" {
+  name                = "app-gateway-vnet-${var.environment}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  address_space       = ["10.0.0.0/16"]
+
+  subnet {
+    name           = "default"
+    address_prefix = "10.0.1.0/24"
+  }
+}
+
+resource "azurerm_subnet" "subnet" {
+  name                 = "gateway-subnet"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
 }
 
 # Autoscale settings for the App Service Plan in Southeast Asia
