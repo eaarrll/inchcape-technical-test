@@ -51,8 +51,13 @@ resource "azurerm_application_gateway" "app_gateway" {
   }
 
   frontend_port {
-    name = "frontend-port"
+    name = "frontend-port-sea"
     port = 80
+  }
+
+  frontend_port {
+    name = "frontend-port-br"
+    port = 8080
   }
 
   frontend_ip_configuration {
@@ -61,12 +66,12 @@ resource "azurerm_application_gateway" "app_gateway" {
   }
 
   backend_address_pool {
-    name = "backend-address-pool-sea"
+    name  = "backend-address-pool-sea"
     fqdns = ["inchcape-app-sea-${var.environment}.azurewebsites.net"]
   }
 
   backend_address_pool {
-    name = "backend-address-pool-br"
+    name  = "backend-address-pool-br"
     fqdns = ["inchcape-app-br-${var.environment}.azurewebsites.net"]
   }
 
@@ -81,14 +86,14 @@ resource "azurerm_application_gateway" "app_gateway" {
   http_listener {
     name                           = "http-listener-sea"
     frontend_ip_configuration_name = "frontend-ip-configuration"
-    frontend_port_name             = "frontend-port"
+    frontend_port_name             = "frontend-port-sea"
     protocol                       = "Http"
   }
 
   http_listener {
     name                           = "http-listener-br"
     frontend_ip_configuration_name = "frontend-ip-configuration"
-    frontend_port_name             = "frontend-port"
+    frontend_port_name             = "frontend-port-br"
     protocol                       = "Http"
   }
 
@@ -238,7 +243,7 @@ resource "azurerm_traffic_manager_profile" "traffic_manager" {
 resource "azurerm_traffic_manager_external_endpoint" "sea_endpoint" {
   name          = "sea-endpoint"
   profile_id    = azurerm_traffic_manager_profile.traffic_manager.id
-  target        = azurerm_public_ip.app_gateway_public_ip.ip_address
+  target        = azurerm_linux_web_app.sea_app.default_site_hostname
   endpoint_location = var.location_se
   priority      = 1
   weight        = 1
@@ -247,7 +252,7 @@ resource "azurerm_traffic_manager_external_endpoint" "sea_endpoint" {
 resource "azurerm_traffic_manager_external_endpoint" "br_endpoint" {
   name          = "br-endpoint"
   profile_id    = azurerm_traffic_manager_profile.traffic_manager.id
-  target        = azurerm_public_ip.app_gateway_public_ip.ip_address
+  target        = azurerm_linux_web_app.br_app.default_site_hostname
   endpoint_location = var.location_br
   priority      = 2
   weight        = 1
