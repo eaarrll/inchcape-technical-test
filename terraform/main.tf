@@ -227,14 +227,16 @@ resource "azurerm_public_ip" "app_gateway_public_ip_sea" {
   name                = "app-gateway-public-ip-sea-${var.environment}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Dynamic"
+  allocation_method   = "Static"
+  sku                 = "Standard"
 }
 
 resource "azurerm_public_ip" "app_gateway_public_ip_br" {
   name                = "app-gateway-public-ip-br-${var.environment}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Dynamic"
+  allocation_method   = "Static"
+  sku                 = "Standard"
 }
 
 resource "azurerm_virtual_network" "vnet_sea" {
@@ -400,7 +402,7 @@ resource "azurerm_monitor_autoscale_setting" "autoscale_br" {
     email {
       # Remove unsupported notifications
       send_to_subscription_administrator    = false
-      send_to_subscription_co_administrator = false
+      send_to_subscription co_administrator = false
     }
   }
 }
