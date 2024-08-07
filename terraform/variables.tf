@@ -24,8 +24,9 @@ variable "location_se" {
   type        = string
 }
 
-variable "location_br" {                                                                                                                                                                                           description = "Latam location"
-  type        = string                                                                                                                                                                                           
+variable "location_br" {
+  description = "Latam location"
+  type        = string
 }
 
 variable "environment" {
