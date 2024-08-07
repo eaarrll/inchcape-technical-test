@@ -134,16 +134,12 @@ resource "azurerm_application_gateway" "app_gateway" {
 
   backend_address_pool {
     name = "backend-address-pool-sea"
-    backend_addresses {
-      fqdn = "inchcape-app-sea-${var.environment}.azurewebsites.net"
-    }
+    fqdns = ["inchcape-app-sea-${var.environment}.azurewebsites.net"]
   }
 
   backend_address_pool {
     name = "backend-address-pool-br"
-    backend_addresses {
-      fqdn = "inchcape-app-br-${var.environment}.azurewebsites.net"
-    }
+    fqdns = ["inchcape-app-br-${var.environment}.azurewebsites.net"]
   }
 
   backend_http_settings {
@@ -215,7 +211,6 @@ resource "azurerm_subnet" "gateway_subnet" {
 resource "azurerm_traffic_manager_profile" "traffic_manager" {
   name                = "inchcape-tm-${var.environment}"
   resource_group_name = azurerm_resource_group.rg.name
-  location            = "global"
   traffic_routing_method = "Performance"
   dns_config {
     relative_name = "inchcape-tm-${var.environment}"
@@ -231,7 +226,7 @@ resource "azurerm_traffic_manager_profile" "traffic_manager" {
   profile_status = "Enabled"
 }
 
-resource "azurerm_traffic_manager_endpoint" "sea_endpoint" {
+resource "azurerm_traffic_manager_external_endpoint" "sea_endpoint" {
   name                = "sea-endpoint"
   resource_group_name = azurerm_resource_group.rg.name
   profile_name        = azurerm_traffic_manager_profile.traffic_manager.name
@@ -241,7 +236,7 @@ resource "azurerm_traffic_manager_endpoint" "sea_endpoint" {
   priority            = 1
 }
 
-resource "azurerm_traffic_manager_endpoint" "br_endpoint" {
+resource "azurerm_traffic_manager_external_endpoint" "br_endpoint" {
   name                = "br-endpoint"
   resource_group_name = azurerm_resource_group.rg.name
   profile_name        = azurerm_traffic_manager_profile.traffic_manager.name
@@ -376,7 +371,7 @@ resource "azurerm_monitor_autoscale_setting" "autoscale_br" {
     email {
       # Remove unsupported notifications
       send_to_subscription_administrator    = false
-      send_to_subscription_co_administrator = false
+      send_to_subscription co_administrator = false
     }
   }
 }
