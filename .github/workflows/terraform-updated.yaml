@@ -1,321 +1,196 @@
-# Resource Group
-resource "azurerm_resource_group" "rg" {
-  name     = "inchcape-rg-${var.environment}"
-  location = var.location_se
-}
+name: Infra Pipeline#
 
-# Log Analytics Workspace
-resource "azurerm_log_analytics_workspace" "law" {
-  name                = "inchcape-log-analytics-${var.environment}"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
-}
+on:
+  push:
+    branches:
+      - main
 
-# Application Insights
-resource "azurerm_application_insights" "ai" {
-  name                = "inchcape-app-insights-${var.environment}"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  application_type    = "web"
-}
+permissions:
+  id-token: write
+  contents: read
 
-# App Service Plan in Southeast Asia
-resource "azurerm_service_plan" "sea_asp" {
-  name                = "inchcape-asp-sea-${var.environment}"
-  location            = var.location_se
-  resource_group_name = azurerm_resource_group.rg.name
-  os_type             = "Linux"
-  sku_name            = "S1"
-}
+    #env:
+    #ARM_CLIENT_ID: "${{ secrets.ARM_CLIENT_ID }}"
+    #ARM_SUBSCRIPTION_ID: "${{ secrets.ARM_SUBSCRIPTION_ID }}"
+    #ARM_TENANT_ID: "${{ secrets.ARM_TENANT_ID }}"
+  
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    environment: inchcape-technical-test
+      #env:
+      #this is needed since we are running terraform with read-only permissions
+      #ARM_SKIP_PROVIDER_REGISTRATION: true
+    defaults:
+      run:
+        working-directory: terraform
 
-# App Service Plan in Brazil South
-resource "azurerm_service_plan" "br_asp" {
-  name                = "inchcape-asp-br-${var.environment}"
-  location            = var.location_br
-  resource_group_name = azurerm_resource_group.rg.name
-  os_type             = "Linux"
-  sku_name            = "S1"
-}
+    steps: 
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-# Linux Web App in Southeast Asia
-resource "azurerm_linux_web_app" "sea_app" {
-  name                = "inchcape-app-sea-${var.environment}"
-  location            = azurerm_service_plan.sea_asp.location
-  resource_group_name = azurerm_resource_group.rg.name
-  service_plan_id     = azurerm_service_plan.sea_asp.id
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
 
-  site_config {
-    app_command_line = "npm start"
-    always_on        = true
-  }
+      - name: Get Azure CLI
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-  app_settings = {
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE  = "false"
-    WEBSITES_PORT                        = "3000"
-    WEBSITE_NODE_DEFAULT_VERSION         = "18"
-    SCM_DO_BUILD_DURING_DEPLOYMENT       = "true"
-    APPINSIGHTS_INSTRUMENTATIONKEY       = azurerm_application_insights.ai.instrumentation_key
-    APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.ai.connection_string
-    LOG_ANALYTICS_WORKSPACE_ID           = azurerm_log_analytics_workspace.law.workspace_id
-  }
+      - name: Get Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 'latest'
+          terraform_wrapper: false
 
-  https_only = true
+      - name: Prepare environment variables
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+        run: | 
+          #Parse Azure secret into Terraform variables
+          $servicePrincipal = $env:AZURE_CREDENTIALS | ConvertFrom-Json
+          $env:ARM_CLIENT_ID = $servicePrincipal.clientId
+          $env:ARM_CLIENT_SECRET = $servicePrincipal.clientSecret
+          $env:ARM_SUBSCRIPTION_ID = $servicePrincipal.subscriptionId
+          $env:ARM_TENANT_ID = $servicePrincipal.tenantId
 
-  identity {
-    type = "SystemAssigned"
-  }
+          # Save environment variable setup for subsequent steps
+          Get-ChildItem -Path Env: -Recurse -Include ARM_*,TF_VAR_* | ForEach-Object {Write-Output "$($_.Name)=$($_.Value)"} >> $env:GITHUB_ENV
+        shell: pwsh
 
-  lifecycle {
-    ignore_changes = all
-  }
-}
+      - name: Terraform Init
+        run: terraform init
+        shell: pwsh
 
-# Linux Web App in Brazil South
-resource "azurerm_linux_web_app" "br_app" {
-  name                = "inchcape-app-br-${var.environment}"
-  location            = azurerm_service_plan.br_asp.location
-  resource_group_name = azurerm_resource_group.rg.name
-  service_plan_id     = azurerm_service_plan.br_asp.id
+      - name: Terraform Plan
+        env:
+          TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+          TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+          TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+        run: terraform plan -var-file="dev.tfvars"
 
-  site_config {
-    app_command_line = "npm start"
-    always_on        = true
-  }
+      - name: Terraform Apply
+        env:
+          TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+          TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+          TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+        run: terraform apply -auto-approve -var-file="dev.tfvars"
 
-  app_settings = {
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE  = "false"
-    WEBSITES_PORT                        = "3000"
-    WEBSITE_NODE_DEFAULT_VERSION         = "18"
-    SCM_DO_BUILD_DURING_DEPLOYMENT       = "true"
-    APPINSIGHTS_INSTRUMENTATIONKEY       = azurerm_application_insights.ai.instrumentation_key
-    APPLICATIONINSIGHTS_CONNECTION_STRING = azurerm_application_insights.ai.connection_string
-    LOG_ANALYTICS_WORKSPACE_ID           = azurerm_log_analytics_workspace.law.workspace_id
-  }
+  deploy-test:
+    runs-on: ubuntu-latest
+    needs: deploy-dev
 
-  https_only = true
+    env:
+      TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+      TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+      TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
 
-  identity {
-    type = "SystemAssigned"
-  }
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-  lifecycle {
-    ignore_changes = all
-  }
-}
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-# Application Gateway
-resource "azurerm_application_gateway" "app_gateway" {
-  name                = "inchcape-app-gateway-${var.environment}"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.0.0
 
-  sku {
-    name     = "Standard_v2"
-    tier     = "Standard_v2"
-    capacity = 2
-  }
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
 
-  gateway_ip_configuration {
-    name      = "my-gateway-ip-configuration"
-    subnet_id = azurerm_subnet.subnet.id
-  }
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -var-file="test.tfvars"
 
-  frontend_port {
-    name = "frontend-port"
-    port = 80
-  }
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve -var-file="test.tfvars"
 
-  frontend_ip_configuration {
-    name                 = "frontend-ip-configuration"
-    public_ip_address_id = azurerm_public_ip.app_gateway_public_ip.id
-  }
+  deploy-uat:
+    runs-on: ubuntu-latest
+    needs: deploy-test
 
-  backend_address_pool {
-    name = "backend-address-pool"
-  }
+    env:
+      TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+      TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+      TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
 
-  backend_http_settings {
-    name                  = "default-backend-http-settings"
-    cookie_based_affinity = "Disabled"
-    port                  = 80
-    protocol              = "Http"
-    request_timeout       = 20
-  }
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-  http_listener {
-    name                           = "http-listener"
-    frontend_ip_configuration_name = "frontend-ip-configuration"
-    frontend_port_name             = "frontend-port"
-    protocol                       = "Http"
-  }
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-  request_routing_rule {
-    name                       = "rule1"
-    rule_type                  = "Basic"
-    http_listener_name         = "http-listener"
-    backend_address_pool_name  = "backend-address-pool"
-    backend_http_settings_name = "default-backend-http-settings"
-  }
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.0.0
 
-  tags = {
-    environment = var.environment
-  }
-}
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
 
-resource "azurerm_public_ip" "app_gateway_public_ip" {
-  name                = "app-gateway-public-ip-${var.environment}"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Dynamic"
-}
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -var-file="uat.tfvars"
 
-resource "azurerm_virtual_network" "vnet" {
-  name                = "app-gateway-vnet-${var.environment}"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  address_space       = ["10.0.0.0/16"]
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve -var-file="uat.tfvars"
 
-  subnet {
-    name           = "default"
-    address_prefix = "10.0.1.0/24"
-  }
-}
+  deploy-prod:
+    runs-on: ubuntu-latest
+    needs: deploy-uat
 
-resource "azurerm_subnet" "subnet" {
-  name                 = "gateway-subnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
-}
+    env:
+      TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+      TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+      TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
 
-# Autoscale settings for the App Service Plan in Southeast Asia
-resource "azurerm_monitor_autoscale_setting" "autoscale_sea" {
-  name                = "autoscale-sea-${var.environment}"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  target_resource_id  = azurerm_service_plan.sea_asp.id
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.0.0
 
-  profile {
-    name = "defaultProfile"
-    capacity {
-      default = 1
-      minimum = 1
-      maximum = 3
-    }
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
 
-    rule {
-      metric_trigger {
-        metric_name        = "CpuPercentage"
-        metric_resource_id = azurerm_service_plan.sea_asp.id
-        operator           = "GreaterThan"
-        statistic          = "Average"
-        threshold          = 75
-        time_aggregation   = "Average"
-        time_grain         = "PT1M"
-        time_window        = "PT5M"
-      }
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -var-file="prod.tfvars"
 
-      scale_action {
-        direction = "Increase"
-        type      = "ChangeCount"
-        value     = 1
-        cooldown  = "PT5M"
-      }
-    }
+      - name: Manual Approval
+        uses: hmarr/auto-approve-action@v2
+        with:
+          approvers: "eaarrll"
 
-    rule {
-      metric_trigger {
-        metric_name        = "CpuPercentage"
-        metric_resource_id = azurerm_service_plan.sea_asp.id
-        operator           = "LessThan"
-        statistic          = "Average"
-        threshold          = 25
-        time_aggregation   = "Average"
-        time_grain         = "PT1M"
-        time_window        = "PT5M"
-      }
-
-      scale_action {
-        direction = "Decrease"
-        type      = "ChangeCount"
-        value     = 1
-        cooldown  = "PT5M"
-      }
-    }
-  }
-
-  notification {
-    email {
-      # Remove unsupported notifications
-      send_to_subscription_administrator    = false
-      send_to_subscription_co_administrator = false
-    }
-  }
-}
-
-# Autoscale settings for the App Service Plan in Brazil South
-resource "azurerm_monitor_autoscale_setting" "autoscale_br" {
-  name                = "autoscale-br-${var.environment}"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = azurerm_resource_group.rg.location
-  target_resource_id  = azurerm_service_plan.br_asp.id
-
-  profile {
-    name = "defaultProfile"
-    capacity {
-      default = 1
-      minimum = 1
-      maximum = 3
-    }
-
-    rule {
-      metric_trigger {
-        metric_name        = "CpuPercentage"
-        metric_resource_id = azurerm_service_plan.br_asp.id
-        operator           = "GreaterThan"
-        statistic          = "Average"
-        threshold          = 75
-        time_aggregation   = "Average"
-        time_grain         = "PT1M"
-        time_window        = "PT5M"
-      }
-
-      scale_action {
-        direction = "Increase"
-        type      = "ChangeCount"
-        value     = 1
-        cooldown  = "PT5M"
-      }
-    }
-
-    rule {
-      metric_trigger {
-        metric_name        = "CpuPercentage"
-        metric_resource_id = azurerm_service_plan.br_asp.id
-        operator           = "LessThan"
-        statistic          = "Average"
-        threshold          = 25
-        time_aggregation   = "Average"
-        time_grain         = "PT1M"
-        time_window        = "PT5M"
-      }
-
-      scale_action {
-        direction = "Decrease"
-        type      = "ChangeCount"
-        value     = 1
-        cooldown  = "PT5M"
-      }
-    }
-  }
-
-  notification {
-    email {
-      # Remove unsupported notifications
-      send_to_subscription_administrator    = false
-      send_to_subscription_co_administrator = false
-    }
-  }
-}
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var-file="prod.tfvars"
+        #run
+        #run
+        #
