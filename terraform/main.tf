@@ -4,6 +4,117 @@ resource "azurerm_resource_group" "rg" {
   location = var.location_se
 }
 
+# Virtual Network
+resource "azurerm_virtual_network" "vnet" {
+  name                = "app-gateway-vnet-${var.environment}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  address_space       = ["10.0.0.0/16"]
+
+  subnet {
+    name           = "default"
+    address_prefix = "10.0.0.0/24"
+  }
+}
+
+resource "azurerm_subnet" "gateway_subnet" {
+  name                 = "gateway-subnet"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
+
+# Public IP for Application Gateway
+resource "azurerm_public_ip" "app_gateway_public_ip" {
+  name                = "app-gateway-public-ip-${var.environment}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+}
+
+# Application Gateway
+resource "azurerm_application_gateway" "app_gateway" {
+  name                = "inchcape-app-gateway-${var.environment}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  sku {
+    name     = "Standard_v2"
+    tier     = "Standard_v2"
+    capacity = 2
+  }
+
+  gateway_ip_configuration {
+    name      = "my-gateway-ip-configuration"
+    subnet_id = azurerm_subnet.gateway_subnet.id
+  }
+
+  frontend_port {
+    name = "frontend-port"
+    port = 80
+  }
+
+  frontend_ip_configuration {
+    name                 = "frontend-ip-configuration"
+    public_ip_address_id = azurerm_public_ip.app_gateway_public_ip.id
+  }
+
+  backend_address_pool {
+    name = "backend-address-pool-sea"
+    fqdns = ["inchcape-app-sea-${var.environment}.azurewebsites.net"]
+  }
+
+  backend_address_pool {
+    name = "backend-address-pool-br"
+    fqdns = ["inchcape-app-br-${var.environment}.azurewebsites.net"]
+  }
+
+  backend_http_settings {
+    name                  = "default-backend-http-settings"
+    cookie_based_affinity = "Disabled"
+    port                  = 80
+    protocol              = "Http"
+    request_timeout       = 20
+  }
+
+  http_listener {
+    name                           = "http-listener-sea"
+    frontend_ip_configuration_name = "frontend-ip-configuration"
+    frontend_port_name             = "frontend-port"
+    protocol                       = "Http"
+  }
+
+  http_listener {
+    name                           = "http-listener-br"
+    frontend_ip_configuration_name = "frontend-ip-configuration"
+    frontend_port_name             = "frontend-port"
+    protocol                       = "Http"
+  }
+
+  request_routing_rule {
+    name                       = "rule1"
+    rule_type                  = "Basic"
+    http_listener_name         = "http-listener-sea"
+    backend_address_pool_name  = "backend-address-pool-sea"
+    backend_http_settings_name = "default-backend-http-settings"
+  }
+
+  request_routing_rule {
+    name                       = "rule2"
+    rule_type                  = "Basic"
+    http_listener_name         = "http-listener-br"
+    backend_address_pool_name  = "backend-address-pool-br"
+    backend_http_settings_name = "default-backend-http-settings"
+  }
+
+  tags = {
+    environment = var.environment
+  }
+
+  depends_on = [azurerm_subnet.gateway_subnet]
+}
+
 # Log Analytics Workspace
 resource "azurerm_log_analytics_workspace" "law" {
   name                = "inchcape-log-analytics-${var.environment}"
@@ -105,115 +216,6 @@ resource "azurerm_linux_web_app" "br_app" {
   }
 }
 
-# Application Gateway
-resource "azurerm_application_gateway" "app_gateway" {
-  name                = "inchcape-app-gateway-${var.environment}"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-
-  sku {
-    name     = "Standard_v2"
-    tier     = "Standard_v2"
-    capacity = 2
-  }
-
-  gateway_ip_configuration {
-    name      = "my-gateway-ip-configuration"
-    subnet_id = azurerm_subnet.gateway_subnet.id
-  }
-
-  frontend_port {
-    name = "frontend-port"
-    port = 80
-  }
-
-  frontend_ip_configuration {
-    name                 = "frontend-ip-configuration"
-    public_ip_address_id = azurerm_public_ip.app_gateway_public_ip.id
-  }
-
-  backend_address_pool {
-    name = "backend-address-pool-sea"
-    fqdns = ["inchcape-app-sea-${var.environment}.azurewebsites.net"]
-  }
-
-  backend_address_pool {
-    name = "backend-address-pool-br"
-    fqdns = ["inchcape-app-br-${var.environment}.azurewebsites.net"]
-  }
-
-  backend_http_settings {
-    name                  = "default-backend-http-settings"
-    cookie_based_affinity = "Disabled"
-    port                  = 80
-    protocol              = "Http"
-    request_timeout       = 20
-  }
-
-  http_listener {
-    name                           = "http-listener-sea"
-    frontend_ip_configuration_name = "frontend-ip-configuration"
-    frontend_port_name             = "frontend-port"
-    protocol                       = "Http"
-  }
-
-  http_listener {
-    name                           = "http-listener-br"
-    frontend_ip_configuration_name = "frontend-ip-configuration"
-    frontend_port_name             = "frontend-port"
-    protocol                       = "Http"
-  }
-
-  request_routing_rule {
-    name                       = "rule1"
-    rule_type                  = "Basic"
-    http_listener_name         = "http-listener-sea"
-    backend_address_pool_name  = "backend-address-pool-sea"
-    backend_http_settings_name = "default-backend-http-settings"
-  }
-
-  request_routing_rule {
-    name                       = "rule2"
-    rule_type                  = "Basic"
-    http_listener_name         = "http-listener-br"
-    backend_address_pool_name  = "backend-address-pool-br"
-    backend_http_settings_name = "default-backend-http-settings"
-  }
-
-  tags = {
-    environment = var.environment
-  }
-
-  depends_on = [azurerm_subnet.gateway_subnet]
-}
-
-resource "azurerm_public_ip" "app_gateway_public_ip" {
-  name                = "app-gateway-public-ip-${var.environment}"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-}
-
-resource "azurerm_virtual_network" "vnet" {
-  name                = "app-gateway-vnet-${var.environment}"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  address_space       = ["10.0.0.0/16"]
-
-  subnet {
-    name           = "default"
-    address_prefix = "10.0.0.0/24"
-  }
-}
-
-resource "azurerm_subnet" "gateway_subnet" {
-  name                 = "gateway-subnet"
-  resource_group_name  = azurerm_resource_group.rg.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefixes     = ["10.0.1.0/24"]
-}
-
 # Traffic Manager
 resource "azurerm_traffic_manager_profile" "traffic_manager" {
   name                = "inchcape-tm-${var.environment}"
@@ -236,7 +238,7 @@ resource "azurerm_traffic_manager_profile" "traffic_manager" {
 resource "azurerm_traffic_manager_external_endpoint" "sea_endpoint" {
   name          = "sea-endpoint"
   profile_id    = azurerm_traffic_manager_profile.traffic_manager.id
-  target        = "inchcape-app-sea-${var.environment}.azurewebsites.net"
+  target        = azurerm_public_ip.app_gateway_public_ip.ip_address
   endpoint_location = var.location_se
   priority      = 1
   weight        = 1
@@ -245,7 +247,7 @@ resource "azurerm_traffic_manager_external_endpoint" "sea_endpoint" {
 resource "azurerm_traffic_manager_external_endpoint" "br_endpoint" {
   name          = "br-endpoint"
   profile_id    = azurerm_traffic_manager_profile.traffic_manager.id
-  target        = "inchcape-app-br-${var.environment}.azurewebsites.net"
+  target        = azurerm_public_ip.app_gateway_public_ip.ip_address
   endpoint_location = var.location_br
   priority      = 2
   weight        = 1
