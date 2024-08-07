@@ -37,6 +37,12 @@ jobs:
         run: npm install --save-dev jest
         working-directory: src
 
+      - name: Start the application
+        run: |
+          npm start &
+          sleep 5
+        working-directory: src
+        
       - name: Run tests
         run: npm test
         working-directory: src
