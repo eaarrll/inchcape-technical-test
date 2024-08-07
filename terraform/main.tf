@@ -76,6 +76,16 @@ resource "azurerm_application_gateway" "app_gateway" {
     request_timeout       = 20
   }
 
+  probe {
+    name                = "http-probe"
+    protocol            = "Http"
+    path                = "/"
+    interval            = 30
+    timeout             = 20
+    unhealthy_threshold = 3
+    pick_host_name_from_backend_http_settings = true
+  }
+
   http_listener {
     name                           = "http-listener"
     frontend_ip_configuration_name = "frontend-ip-configuration"
@@ -89,6 +99,7 @@ resource "azurerm_application_gateway" "app_gateway" {
     http_listener_name         = "http-listener"
     backend_address_pool_name  = "backend-address-pool"
     backend_http_settings_name = "default-backend-http-settings"
+    probe_name                 = "http-probe"
   }
 
   tags = {
@@ -145,6 +156,7 @@ resource "azurerm_linux_web_app" "sea_app" {
   site_config {
     app_command_line = "npm start"
     always_on        = true
+    linux_fx_version = "NODE|18-lts"
   }
 
   app_settings = {
@@ -178,6 +190,7 @@ resource "azurerm_linux_web_app" "br_app" {
   site_config {
     app_command_line = "npm start"
     always_on        = true
+    linux_fx_version = "NODE|18-lts"
   }
 
   app_settings = {
@@ -329,4 +342,9 @@ resource "azurerm_monitor_autoscale_setting" "autoscale_br" {
       send_to_subscription_co_administrator = false
     }
   }
+}
+
+# Output the public IP address of the Application Gateway
+output "application_gateway_public_ip" {
+  value = azurerm_public_ip.app_gateway_public_ip.ip_address
 }
