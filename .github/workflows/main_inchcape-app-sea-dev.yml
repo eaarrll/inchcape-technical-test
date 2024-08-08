@@ -71,7 +71,7 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'inchcape-app-sea-dev'
+          app-name: 'inchcape-app-br-dev'
           slot-name: 'Production'
           package: .
           
