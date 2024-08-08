@@ -50,7 +50,7 @@ jobs:
           #run: npm install eslint @eslint/js && npx eslint .
 
       - name: Run vulnerability scan
-        run: npm audit --audit-level=moderate
+        run: npm audit fix --force 
 
       - name: Fix vulnerabilities
         run: npm audit fix --force
