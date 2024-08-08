@@ -1,30 +1,27 @@
-/** @type {import('eslint').Linter.Config} */
-const config = {
-  env: {
-    browser: true,
-    es2021: true,
-    node: true,
-  },
-  extends: [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:prettier/recommended"
-  ],
-  parser: "@typescript-eslint/parser",
-  parserOptions: {
-    ecmaVersion: 12,
-    sourceType: "module",
-  },
-  plugins: [
-    "@typescript-eslint",
-    "prettier"
-  ],
-  rules: {
-    "prettier/prettier": "error",
-    "no-console": "warn",
-    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-  },
-};
+import { Linter } from "eslint";
+import { js } from "@eslint/js";
 
-module.exports = config;
+const config = new Linter.Config({
+  files: ["**/*.js"],
+  languageOptions: {
+    ecmaVersion: "latest",
+    sourceType: "module",
+    globals: {
+      process: "readonly",
+      __dirname: "readonly",
+    },
+  },
+  rules: {
+    "no-unused-vars": "warn",
+    "no-console": "off",
+  },
+  plugins: {
+    js,
+  },
+  linterOptions: {
+    reportUnusedDisableDirectives: true,
+  },
+});
+
+export default config;
 
