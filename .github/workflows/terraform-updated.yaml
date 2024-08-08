@@ -56,12 +56,21 @@ jobs:
           Get-ChildItem -Path Env: -Recurse -Include ARM_*,TF_VAR_* | ForEach-Object {Write-Output "$($_.Name)=$($_.Value)"} >> $env:GITHUB_ENV
         shell: pwsh
 
-      - name: Terraform Validate
-        run: terraform validate
+      - name: Generate backend config
+        run: |
+          cat <<EOF > backend-config.hcl
+          resource_group_name   = "inchcape-rg"
+          storage_account_name  = "inchcapesa"
+          container_name        = "tfstate"
+          key                   = "${{ github.event.inputs.environment }}.terraform.tfstate"
+          EOF
 
       - name: Terraform Init
-        run: terraform init -backend-config="key=${{ github.event.inputs.environment }}.terraform.tfstate"
+        run: terraform init -backend-config=backend-config.hcl
         shell: pwsh
+
+      - name: Terraform Validate
+        run: terraform validate
 
       - name: Terraform Plan
         env:
@@ -87,8 +96,7 @@ jobs:
         uses: hmarr/auto-approve-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          # You can specify approvers here if needed
-          # approvers: "username1,username2"
+          approvers: "eaarrll"
 
       - name: Terraform Apply with Approval
         if: ${{ github.event.inputs.environment == 'uat' || github.event.inputs.environment == 'prod' }}
