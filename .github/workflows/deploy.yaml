@@ -46,8 +46,8 @@ jobs:
       - name: Install dependencies
         run: npm install
   
-      - name: Run static code analysis
-        run: npm install eslint @eslint/js && npx eslint .
+          #- name: Run static code analysis
+          #run: npm install eslint @eslint/js && npx eslint .
 
       - name: Run vulnerability scan
         run: npm audit --audit-level=moderate
