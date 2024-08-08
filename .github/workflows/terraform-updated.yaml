@@ -58,16 +58,26 @@ jobs:
         run: terraform init
         shell: pwsh
 
+      - name: Static Testing
+        run: terraform validate
+
       - name: Terraform Plan
         env:
           TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
           TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
           TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
-        run: terraform plan -var-file="${{ github.event.inputs.environment }}.tfvars" -out="${{ github.event.inputs.environment }}.out" -lock=false
+        run: terraform plan -var-file="${{ github.event.inputs.environment }}.tfvars" -out="${{ github.event.inputs.environment }}.out"
 
-      - name: Static Testing
-        run: terraform validate
+      - name: Terraform Apply (Without Approval)
+        if: ${{ github.event.inputs.environment == 'dev' || github.event.inputs.environment == 'test' }}
+        env:
+          TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+          TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+          TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+        run: terraform apply -auto-approve "${{ github.event.inputs.environment }}.out"
+        shell: pwsh
 
       - name: Manual Approval (UAT and PROD)
         if: ${{ github.event.inputs.environment == 'uat' || github.event.inputs.environment == 'prod' }}
@@ -78,16 +88,6 @@ jobs:
 
       - name: Terraform Apply (With Approval)
         if: ${{ github.event.inputs.environment == 'uat' || github.event.inputs.environment == 'prod' }} && steps.manual-approval.outputs.approved == 'true'
-        env:
-          TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
-          TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
-          TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
-        run: terraform apply -auto-approve "${{ github.event.inputs.environment }}.out"
-        shell: pwsh
-
-      - name: Terraform Apply (Without Approval)
-        if: ${{ github.event.inputs.environment == 'dev' || github.event.inputs.environment == 'test' }}
         env:
           TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
           TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
