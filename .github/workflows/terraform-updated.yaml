@@ -1,31 +1,31 @@
-name: Infra Pipeline##
+name: Infra Pipeline
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        options:
+          - dev
+          - test
+          - uat
+          - prod
 
 permissions:
   id-token: write
   contents: read
 
-    #env:
-    #ARM_CLIENT_ID: "${{ secrets.ARM_CLIENT_ID }}"
-    #ARM_SUBSCRIPTION_ID: "${{ secrets.ARM_SUBSCRIPTION_ID }}"
-    #ARM_TENANT_ID: "${{ secrets.ARM_TENANT_ID }}"
-  
 jobs:
-  deploy-dev:
+  deploy:
     runs-on: ubuntu-latest
-    environment: inchcape-technical-test
-      #env:
-      #this is needed since we are running terraform with read-only permissions
-      #ARM_SKIP_PROVIDER_REGISTRATION: true
+    environment: ${{ github.event.inputs.environment }}
     defaults:
       run:
         working-directory: terraform
 
-    steps: 
+    steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -39,17 +39,11 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Get Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 'latest'
-          terraform_wrapper: false
-
       - name: Prepare environment variables
         env:
           AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-        run: | 
-          #Parse Azure secret into Terraform variables
+        run: |
+          # Parse Azure secret into Terraform variables
           $servicePrincipal = $env:AZURE_CREDENTIALS | ConvertFrom-Json
           $env:ARM_CLIENT_ID = $servicePrincipal.clientId
           $env:ARM_CLIENT_SECRET = $servicePrincipal.clientSecret
@@ -57,7 +51,7 @@ jobs:
           $env:ARM_TENANT_ID = $servicePrincipal.tenantId
 
           # Save environment variable setup for subsequent steps
-          Get-ChildItem -Path Env: -Recurse -Include ARM_*,TF_VAR_* | ForEach-Object {Write-Output "$($_.Name)=$($_.Value)"} >> $env:GITHUB_ENV
+          Get-ChildItem -Path Env: -Recurse -Include ARM_*,TF_VAR_* | ForEach-Object { Write-Output "$($_.Name)=$($_.Value)" } >> $env:GITHUB_ENV
         shell: pwsh
 
       - name: Terraform Init
@@ -70,127 +64,34 @@ jobs:
           TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
           TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
-        run: terraform plan -var-file="dev.tfvars" -lock=false
+        run: terraform plan -var-file="${{ github.event.inputs.environment }}.tfvars" -out="${{ github.event.inputs.environment }}.out" -lock=false
 
-      - name: Terraform Apply
-        env:
-          TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
-          TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
-          TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
-        run: terraform apply -auto-approve -var-file="dev.tfvars" -lock=false
+      - name: Static Testing
+        run: terraform validate
 
-  deploy-test:
-    runs-on: ubuntu-latest
-    needs: deploy-dev
-
-    env:
-      TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
-      TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
-      TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.0.0
-
-      - name: Terraform Init
-        working-directory: terraform
-        run: terraform init
-
-      - name: Terraform Plan
-        working-directory: terraform
-        run: terraform plan -var-file="test.tfvars"
-
-      - name: Terraform Apply
-        working-directory: terraform
-        run: terraform apply -auto-approve -var-file="test.tfvars"
-
-  deploy-uat:
-    runs-on: ubuntu-latest
-    needs: deploy-test
-
-    env:
-      TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
-      TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
-      TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.0.0
-
-      - name: Terraform Init
-        working-directory: terraform
-        run: terraform init
-
-      - name: Terraform Plan
-        working-directory: terraform
-        run: terraform plan -var-file="uat.tfvars"
-
-      - name: Terraform Apply
-        working-directory: terraform
-        run: terraform apply -auto-approve -var-file="uat.tfvars"
-
-  deploy-prod:
-    runs-on: ubuntu-latest
-    needs: deploy-uat
-
-    env:
-      TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
-      TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
-      TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.0.0
-
-      - name: Terraform Init
-        working-directory: terraform
-        run: terraform init
-
-      - name: Terraform Plan
-        working-directory: terraform
-        run: terraform plan -var-file="prod.tfvars"
-
-      - name: Manual Approval
+      - name: Manual Approval (UAT and PROD)
+        if: ${{ github.event.inputs.environment == 'uat' || github.event.inputs.environment == 'prod' }}
         uses: hmarr/auto-approve-action@v2
         with:
           approvers: "eaarrll"
+          label: "manual-approval"
 
-      - name: Terraform Apply
-        run: terraform apply -auto-approve -var-file="prod.tfvars"
-        #run
-        #run
-        #
+      - name: Terraform Apply (With Approval)
+        if: ${{ github.event.inputs.environment == 'uat' || github.event.inputs.environment == 'prod' }} && steps.manual-approval.outputs.approved == 'true'
+        env:
+          TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+          TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+          TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+        run: terraform apply -auto-approve "${{ github.event.inputs.environment }}.out"
+        shell: pwsh
+
+      - name: Terraform Apply (Without Approval)
+        if: ${{ github.event.inputs.environment == 'dev' || github.event.inputs.environment == 'test' }}
+        env:
+          TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
+          TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
+          TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+        run: terraform apply -auto-approve "${{ github.event.inputs.environment }}.out"
+        shell: pwsh
