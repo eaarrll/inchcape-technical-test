@@ -53,48 +53,49 @@ jobs:
           $env:ARM_TENANT_ID = $servicePrincipal.tenantId
 
           # Save environment variable setup for subsequent steps
-          Get-ChildItem -Path Env: -Recurse -Include ARM_*,TF_VAR_* | ForEach-Object { Write-Output "$($_.Name)=$($_.Value)" } >> $env:GITHUB_ENV
+          Get-ChildItem -Path Env: -Recurse -Include ARM_*,TF_VAR_* | ForEach-Object {Write-Output "$($_.Name)=$($_.Value)"} >> $env:GITHUB_ENV
         shell: pwsh
 
-      - name: Terraform Init
-        run: terraform init
-        shell: pwsh
-
-      - name: Static Testing
+      - name: Terraform Validate
         run: terraform validate
 
+      - name: Terraform Init
+        run: terraform init -backend-config="key=${{ github.event.inputs.environment }}.terraform.tfstate"
+        shell: pwsh
+
       - name: Terraform Plan
-        id: plan
         env:
           TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
           TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
           TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+          TF_VAR_environment: ${{ github.event.inputs.environment }}
         run: terraform plan -var-file="${{ github.event.inputs.environment }}.tfvars" -out="${{ github.event.inputs.environment }}.out"
 
-      - name: Terraform Apply (Without Approval)
+      - name: Terraform Apply
         if: ${{ github.event.inputs.environment != 'uat' && github.event.inputs.environment != 'prod' }}
         env:
           TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
           TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
           TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
+          TF_VAR_environment: ${{ github.event.inputs.environment }}
         run: terraform apply -auto-approve "${{ github.event.inputs.environment }}.out"
-        shell: pwsh
-        
-      - name: Manual Approval (UAT and PROD)
+
+      - name: Manual Approval
         if: ${{ github.event.inputs.environment == 'uat' || github.event.inputs.environment == 'prod' }}
         uses: hmarr/auto-approve-action@v2
         with:
-          approvers: "YOUR_GITHUB_USERNAME"
-          label: "manual-approval"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # You can specify approvers here if needed
+          # approvers: "username1,username2"
 
-      - name: Terraform Apply (With Approval)
+      - name: Terraform Apply with Approval
         if: ${{ github.event.inputs.environment == 'uat' || github.event.inputs.environment == 'prod' }}
         env:
           TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
           TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
           TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
-        run: terraform apply -auto-approve "${{ github.event.inputs.environment }}.out"
-        shell: pwsh
+          TF_VAR_environment: ${{ github.event.inputs.environment }}
+        run: terraform apply "${{ github.event.inputs.environment }}.out"
