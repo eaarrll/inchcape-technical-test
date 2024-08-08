@@ -1,49 +1,213 @@
-name: Application Pipeline
+name: App deployment pipeline #
 
 on:
   push:
-    paths:
-      - src/**
-      - web.config
-      - .github/workflows/deploy.yaml
+    branches:
+      - 'feature/*'
+  pull_request:
+    branches:
+      - develop
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to (uat, prod)'
+        required: true
+        type: string
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+env:
+  AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment: inchcape-technical-test
+    defaults:
+       run:
+         working-directory: src
+         
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+
+      - name: Install Jest
+        run: npm install --save-dev jest
+
+      - name: npm install, build, and test
+        run: |
+          npm install
+          npm run build --if-present
+          npm start &
+          sleep 5
+          npm run test --if-present
+
+      - name: Zip artifact for deployment
+        run: zip release.zip ./* -r
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-app
+          path: src/release.zip
+
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/feature/*'
+    environment:
+      name: 'inchcape-technical-test'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    
-    - uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: node-app
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}          
 
-    - name: Install dependencies
-      working-directory: src
-      run: |
-        npm install -g
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'inchcape-app-br-dev'
+          slot-name: 'Production'
+          package: .
 
-   # - name: Run tests
-    #  working-directory: src
-     # run: npm test
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp1
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'inchcape-app-sea-dev'
+          slot-name: 'Production'
+          package: .
+  
+  deploy-test:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: 'inchcape-technical-test'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write
 
-    - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v2
-      with:
-        app-name: inchcape-app-sea-dev
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_DEV_SE }}
-        package: src/
-      #run
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: node-app
+
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}          
+
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'inchcape-app-br-test'
+          slot-name: 'Production'
+          package: .
+
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp1
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'inchcape-app-sea-test'
+          slot-name: 'Production'
+          package: .
+
+  deploy-uat:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/release/*'
+    environment:
+      name: 'inchcape-technical-test'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: node-app
+
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}          
+
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'inchcape-app-br-uat'
+          slot-name: 'Production'
+          package: .
+
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp1
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'inchcape-app-sea-uat'
+          slot-name: 'Production'
+          package: .
+          
+  deploy-prod:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event.inputs.environment == 'prod'
+    environment:
+      name: 'inchcape-technical-test'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: node-app
+
+      - name: Unzip artifact for deployment
+        run: unzip release.zip
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}          
+
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'inchcape-app-br-prod'
+          slot-name: 'Production'
+          package: .
+
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp1
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'inchcape-app-sea-prod'
+          slot-name: 'Production'
+          package: .
