@@ -1,7 +1,7 @@
-import { Linter } from "eslint";
-import { js } from "@eslint/js";
+const { Linter } = require("eslint");
+const js = require("@eslint/js");
 
-const config = new Linter.Config({
+module.exports = new Linter.Config({
   files: ["**/*.js"],
   languageOptions: {
     ecmaVersion: "latest",
@@ -22,6 +22,4 @@ const config = new Linter.Config({
     reportUnusedDisableDirectives: true,
   },
 });
-
-export default config;
 
