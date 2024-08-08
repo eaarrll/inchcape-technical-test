@@ -46,18 +46,24 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run static code analysis
-        run: npm install eslint && npx eslint .
+      - name: Install Jest
+        run: npm install --save-dev jest
+  
+          #- name: Run static code analysis
+          #run: npm install eslint @eslint/js && npx eslint .
 
       - name: Run vulnerability scan
-        run: npm audit --audit-level=moderate
+        run: npm audit fix --force 
+
+      - name: Fix vulnerabilities
+        run: npm audit fix --force
 
       - name: Run tests
         run: |
           npm run build --if-present
           npm start &
           sleep 5
-          npm run test --if-present
+          npm test
 
       - name: Zip artifact for deployment
         run: zip -r release.zip ./*

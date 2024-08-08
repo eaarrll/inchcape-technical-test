@@ -13,5 +13,16 @@
   "dependencies": {
     "axios": "^0.21.1",
     "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "jest": "^27.0.6",
+    "babel-jest": "^27.0.6",
+    "@babel/preset-env": "^7.14.7"
+  },
+  "jest": {
+    "moduleNameMapper": {
+      "^axios$": "axios/dist/node/axios.cjs"
+    }
   }
 }
+
