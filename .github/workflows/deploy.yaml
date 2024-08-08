@@ -52,6 +52,9 @@ jobs:
       - name: Run vulnerability scan
         run: npm audit --audit-level=moderate
 
+      - name: Fix vulnerabilities
+        run: npm audit fix --force
+
       - name: Run tests
         run: |
           npm run build --if-present

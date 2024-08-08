@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A Node.js service to consume and display data from a REST API",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "start": "node index.js",
     "test": "jest"
@@ -13,5 +14,10 @@
   "dependencies": {
     "axios": "^0.21.1",
     "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "jest": "^27.0.0",
+    "eslint": "^9.8.0"
   }
 }
+
