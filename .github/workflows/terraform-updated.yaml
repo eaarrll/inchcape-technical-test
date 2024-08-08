@@ -62,6 +62,7 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
+        id: plan
         env:
           TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
           TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
@@ -70,7 +71,7 @@ jobs:
         run: terraform plan -var-file="${{ github.event.inputs.environment }}.tfvars" -out="${{ github.event.inputs.environment }}.out"
 
       - name: Terraform Apply (Without Approval)
-        if: ${{ github.event.inputs.environment == 'dev' || github.event.inputs.environment == 'test' }}
+        if: ${{ github.event.inputs.environment != 'uat' && github.event.inputs.environment != 'prod' }}
         env:
           TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
           TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
@@ -78,16 +79,16 @@ jobs:
           TF_VAR_tenant_id: ${{ secrets.ARM_TENANT_ID }}
         run: terraform apply -auto-approve "${{ github.event.inputs.environment }}.out"
         shell: pwsh
-
+        
       - name: Manual Approval (UAT and PROD)
         if: ${{ github.event.inputs.environment == 'uat' || github.event.inputs.environment == 'prod' }}
         uses: hmarr/auto-approve-action@v2
         with:
-          approvers: "eaarrll"
+          approvers: "YOUR_GITHUB_USERNAME"
           label: "manual-approval"
 
       - name: Terraform Apply (With Approval)
-        if: ${{ github.event.inputs.environment == 'uat' || github.event.inputs.environment == 'prod' }} && steps.manual-approval.outputs.approved == 'true'
+        if: ${{ github.event.inputs.environment == 'uat' || github.event.inputs.environment == 'prod' }}
         env:
           TF_VAR_client_id: ${{ secrets.ARM_CLIENT_ID }}
           TF_VAR_client_secret: ${{ secrets.ARM_CLIENT_SECRET }}
